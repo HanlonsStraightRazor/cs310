@@ -1,0 +1,21 @@
+/**
+ * Determines if two 4 bit inputs are
+ * bitwise equal.
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP EQUAL {
+
+	IN a[4], b[4];
+	OUT out;
+
+    PARTS:
+	Xor(a=a[0], b=b[0], out=a0Xorb0);
+	Xor(a=a[1], b=b[1], out=a1Xorb1);
+	Xor(a=a[2], b=b[2], out=a2Xorb2);
+	Xor(a=a[3], b=b[3], out=a3Xorb3);
+	Or(a=a0Xorb0, b=a1Xorb1, out=Zeroand1neq);
+	Or(a=a2Xorb2, b=a3Xorb3, out=Twoand3neq);
+	Or(a=Zeroand1neq, b=Twoand3neq, out=Zerothru4neq);
+	Not(in=Zerothru4neq, out=out);
+}

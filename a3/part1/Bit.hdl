@@ -1,0 +1,18 @@
+/**
+ * Author: Martin Mueller & Isaiah Ley
+ *
+ *  1-bit register
+ *  if (load[t-1] == 1) 
+ *  then out[t] = in[t-1]
+ *  else out[t] = out[t-1]       // i.e., out does not change
+ */
+
+CHIP Bit {
+
+    IN  in, load;
+    OUT out;
+
+    PARTS:
+    Mux(a = out1, b = in, sel = load, out = muxOut);
+	DFF(in = muxOut, out = out, out = out1);
+}

@@ -1,0 +1,37 @@
+/**
+ * Hardwired control unit for the single-cycle implementation 
+ * of the Larc ISA
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP CU {
+
+    IN opcode[4];
+    OUT out[16];
+
+    PARTS:
+	// Make opcodes more readable
+    DMux16Way(in=true, sel=opcode, a=add, b=sub, c=mul, d=div,
+	          e=sll, f=srl, g=nor, h=slt, i=li, j=lui,
+			  k=beq, l=bne, m=lw, n=sw, o=jal,
+			  p=halt);
+	// Fast way of weeding out ALU operations
+	Not(in=opcode[3], out=ALUOp);
+	Or(a=lw, b=false, out=out[0]);                                   // SE
+	Or(a=beq, b=bne, out=out[1]);                                    // RR1
+	Or8Way(in[0]=li, in[1]=ALUOp, in[2]=lw, in[3]=false, in[4]=false,
+	       in[5]=false, in[6]=false, in[7]=false, out=out[2]);       // RFWD[0]
+	Or8Way(in[0]=lw, in[1]=ALUOp, in[2]=jal, in[3]=false, in[4]=false,
+	       in[5]=false, in[6]=false, in[7]=false, out=out[3]);       // RFWD[1]
+	Or8Way(in[0]=li, in[1]=lui, in[2]=ALUOp, in[3]=lw, in[4]=jal,
+	       in[5]=false, in[6]=false, in[7]=false, out=out[4]);       // RFWRITE
+	Or(a=jal, b=false, out=out[5]);                                  // JAL
+	Or(a=bne, b=false, out=out[6]);                                  // BN
+	Or(a=beq, b=false, out=out[7]);                                  // BE
+	Or(a=sw, b=lw, out=out[8]);                                      // ALU
+	Or(a=sub, b=slt, out=out[9]);                                    // SUB
+	Or(a=nor, b=slt, out=out[10]);                                   // NOR
+	Or(a=sw, b=false, out=out[11]);                                  // SW
+	Or(a=lw, b=false, out=out[12]);                                  // LW
+	Or(a=halt, b=false, out=out[13]);                                // HALT
+}

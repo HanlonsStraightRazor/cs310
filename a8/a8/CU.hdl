@@ -1,0 +1,68 @@
+/**
+ * Hardwired control unit for the
+ * pipelined implementation of the Larc ISA
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP CU {
+
+    IN opcode[4], instruction[16];
+    OUT out[16];
+
+    PARTS:
+	// Decode Stage
+	Mux16Way16(
+		a[0..2]=false, a[3..4]=true, a[5..15]=false,
+		b[0..2]=false, b[3..4]=true, b[5..8]=false,
+		b[9]=true, b[10..15]=false,
+		c[0..2]=false, c[3..4]=true, c[5..15]=false,
+		d[0..2]=false, d[3..4]=true, d[5..15]=false,
+		e[0..2]=false, e[3..4]=true, e[5..15]=false,
+		f[0..2]=false, f[3..4]=true, f[5..15]=false,
+		g[0..2]=false, g[3..4]=true, g[5..9]=false,
+		g[10]=true, g[11..15]=false,
+		h[0..2]=false, h[3..4]=true, h[5..8]=false,
+		h[9..10]=true, h[11..15]=false,
+		i[0..1]=false, i[2]=true, i[3]=false,
+		i[4]=true, i[5..15]=false,
+		j[0..3]=false, j[4]=true, j[5..15]=false,
+		k[0]=false, k[1]=true, k[2..6]=false, k[7]=true,
+		k[8..15]=false,
+		l[0]=false, l[1]=true, l[2..5]=false, l[6]=true,
+		l[7..15]=false,
+		m[0]=true, m[1..2]=false, m[3..4]=true, m[5..7]=false,
+		m[8]=true, m[9..11]=false, m[12]=true, m[13..15]=false,
+		n[0]=true, n[1..7]=false, n[8]=true, n[9..10]=false,
+		n[11]=true, n[12..15]=false,
+		o[0..1]=false, o[2..5]=true, o[6..15]=false,
+		p[0..13]=false, p[13]=true, p[14..15]=false,
+		sel=opcode,
+		out[0]=out[0], out[1]=out[1], out[13]=out[13], out[14..15]=false,
+		out=muxOut
+	);
+	
+	// Execute Stage
+	Register(
+		in=muxOut,
+		load=true,
+		out[5]=out[5], out[6]=out[6], out[7]=out[7],
+		out[8]=out[8], out[9]=out[9], out[10]=out[10],
+		out=C1Out
+	);
+	
+	// Memory Stage
+	Register(
+		in=C1Out,
+		load=true,
+		out[11]=out[11],
+		out=C2Out
+	);
+	
+	// Write Back Stage
+	Register(
+		in=C2Out,
+		load=true,
+		out[2]=out[2], out[3]=out[3],
+		out[4]=out[4], out[12]=out[12]
+	);
+}

@@ -1,0 +1,15 @@
+/**
+ * Write back/not applicable
+ * buffer for pipelined Larc.
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP WBNA {
+
+	IN in0[16], in1[16];
+	OUT out0[16], out1[16];
+
+    PARTS:
+	Regs(in=in1, load=true, out=out1);
+	ALUoutput(in=in0, load=true, out=out0);
+}

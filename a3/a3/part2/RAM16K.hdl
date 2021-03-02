@@ -1,0 +1,23 @@
+/**
+ * RAM16K: Memory of 16,384 registers, each 16 bits wide.  
+ * The chip supports read and write operations, as follows:
+ *     Read:  out(t) = RAM16K[address(t)](t)
+ *     Write: If load(t-1)==1 then RAM16K[address(t-1)](t) = in(t-1)
+ * In words: the chip always outputs the value stored at the memory 
+ * location specified by 'address'. If load==1, the in value is loaded 
+ * into the memory location specified by address.  This value becomes 
+ * available through the out pin starting from the next time step.
+ */
+CHIP RAM16K {
+
+    IN  in[16], load, address[14];
+    OUT out[16];
+
+    PARTS:
+    RAM4K(in = in, load = out1, address = address[0..11], out = ram1);
+	RAM4K(in = in, load = out2, address = address[0..11], out = ram2);
+	RAM4K(in = in, load = out3, address = address[0..11], out = ram3);
+	RAM4K(in = in, load = out4, address = address[0..11], out = ram4);
+	DMux4Way(in = load, sel = address[12..13], a = out1, b = out2, c = out3, d = out4);
+	Mux4Way16(a = ram1, b = ram2, c = ram3, d = ram4, sel = address[12..13], out = out);
+}

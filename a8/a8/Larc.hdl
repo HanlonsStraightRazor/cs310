@@ -1,0 +1,145 @@
+/**
+ * Pipelined implementation of the Larc ISA
+ * Authors: Martin Mueller & Isaiah Ley
+ * Assignment Completion Status:
+ * The pipeline works correctly in all cases in which forwarding is not needed.
+ */
+
+CHIP Larc {
+
+    PARTS:
+	// HALT Logic
+	Not(in=HALT, out=NotHALT);
+	And(a=NotHALT, b=PCnand, out=PCload);
+	
+	// Instruction Memory
+	RAM4K(in=false, load=false, address[0]=PCout0, address[1]=PCout1,
+		address[2]=PCout2, address[3]=PCout3, address[4]=PCout4,
+		address[5]=PCout5, address[6]=PCout6, address[7]=PCout7,
+		address[8]=PCout8, address[9]=PCout9, address[10]=PCout10,
+		address[11]=PCout11, out[12]=IMout12, out[13]=IMout13,
+		out[14]=IMout14, out[15]=IMout15, out=IMout);
+	
+	// Data Memory
+	RAM16K(in=exmemout1, load=SW, address=exmemaddress, out=DMout);
+	
+	// Program Counter
+    PC(in=PCMux, load=PCload, inc=false, reset=false, out[0]=PCout0,
+		out[1]=PCout1, out[2]=PCout2, out[3]=PCout3, out[4]=PCout4,
+		out[5]=PCout5, out[6]=PCout6, out[7]=PCout7, out[8]=PCout8,
+		out[9]=PCout9, out[10]=PCout10, out[11]=PCout11, out=PCout);
+	
+	// PC Incrementer
+	Inc16(in=PCout, out=PCplusOne);
+	
+	// PC Mux
+	Mux16(a=PCplusOne, b=IDEXmux0Out, sel=JALorBranch, out=PCMux);
+	
+	// PC NAND Gate
+	And(a=IMout12, b=IMout13, out=IMand1);
+	And(a=IMout14, b=IMout15, out=IMand2);
+	Nand(a=IMand1, b=IMand2, out=PCnand);
+	
+	// IF/ID Pipeline Buffer
+	IFID(in0=PCplusOne, in1=IMout, out0=ifidout0, out1[0]=ifidout10,
+		out1[1]=ifidout11, out1[2]=ifidout12, out1[3]=ifidout13,
+		out1[4]=ifidout14, out1[5]=ifidout15, out1[6]=ifidout16,
+		out1[7]=ifidout17, out1[8]=ifidout18, out1[9]=ifidout19,
+		out1[10]=ifidout110, out1[11]=ifidout111, out1[12]=ifidout112,
+		out1[13]=ifidout113, out1[14]=ifidout114, out1[15]=ifidout115,
+		out1=ifidout1);
+	
+	// Control Unit
+	CU(opcode[0]=ifidout112, opcode[1]=ifidout113, opcode[2]=ifidout114,
+		opcode[3]=ifidout115, instruction=ifidout1, out[0]=SE, out[1]=RR1,
+		out[2]=RFWD0, out[3]=RFWD1, out[4]=RFWRITE, out[5]=JAL, out[6]=BN,
+		out[7]=BE, out[8]=ALU, out[9]=SUB, out[10]=NOR, out[11]=SW,
+		out[12]=LW, out[13]=HALT, out=CUout);
+	
+	// SE Mux
+	Mux4(a[0]=ifidout18, a[1]=ifidout19, a[2]=ifidout110, a[3]=ifidout11,
+		b[0]=ifidout10, b[1]=ifidout11, b[2]=ifidout12, b[3]=ifidout13, sel=SE,
+		out=SEmuxOut, out[3]=SEmuxOut3);
+	
+	// RFWD Mux
+	Mux4Way16(a[0..7]=false, a[8..15]=LIMM, b=memwbout3, c=LWmuxOut,
+		d=memwbout4, sel[0]=RFWD0, sel[1]=RFWD1, out=RFWDmuxOut);
+	
+	// RR1 Mux
+	Mux4(a[0]=ifidout14, a[1]=ifidout15, a[2]=ifidout16, a[3]=ifidout17,
+		b[0..3]=false, sel=RR1, out=RR1muxOut);
+	
+	// PC Adder
+	Add16(a=ifidout0, b[0]=ifidout14, b[1]=ifidout15, b[2]=ifidout16,
+		b[3]=ifidout17, b[4]=ifidout18, b[5]=ifidout19, b[6]=ifidout110,
+		b[7]=ifidout111, b[8]=ifidout111, b[9]=ifidout111, b[10]=ifidout111,
+		b[11]=ifidout111, b[12]=ifidout111, b[13]=ifidout111, b[14]=ifidout111,
+		b[15]=ifidout111, out=PCadder);
+	
+	// Register File
+	RegisterFile(rr1=RR1muxOut, rr2[0]=ifidout10, rr2[1]=ifidout11,
+		rr2[2]=ifidout12, rr2[3]=ifidout13, wr=RFWR, wd=RFWDmuxOut,
+		load=RFWRITE, rd1=RD1, rd2=RD2);
+	
+	// ID/EX Pipeline Buffer
+	IDEX(in0=PCadder, in1=RD1, in2=RD2, in3[0..3]=SEmuxOut, in3[4]=SEmuxOut3,
+		in3[5]=SEmuxOut3, in3[6]=SEmuxOut3, in3[7]=SEmuxOut3, in3[8]=SEmuxOut3,
+		in3[9]=SEmuxOut3, in3[10]=SEmuxOut3, in3[11]=SEmuxOut3,
+		in3[12]=SEmuxOut3, in3[13]=SEmuxOut3, in3[14]=SEmuxOut3,
+		in3[15]=SEmuxOut3, in4=ifidout1, in5[0]=ifidout10, in5[1]=ifidout11,
+		in5[2]=ifidout12, in5[3]=ifidout13, in5[4]=ifidout14, in5[5]=ifidout15,
+		in5[6]=ifidout16, in5[7]=ifidout17, in5[8]=ifidout17, in5[9]=ifidout17,
+		in5[10]=ifidout17, in5[11]=ifidout17, in5[12]=ifidout17,
+		in5[13]=ifidout17, in5[14]=ifidout17, in5[15]=ifidout17, in6=ifidout0,
+		CUin=CUout, out0=idexout0, out1=idexout1, out2=idexout2, out3=idexout3,
+		out4=idexout4, out5=idexout5, out6=idexout6, controlBits=idexCB);
+	
+	// Branching Logic
+	Not(in=ALUz, out=NotALUz);
+	And(a=ALUz, b=BE, out=BEandz);
+	And(a=NotALUz, b=BN, out=BNandNotz);
+	Or(a=BEandz, b=BNandNotz, out=branch);
+	Or(a=JAL, b=branch, out=JALorBranch);
+	
+	// ID/EX Mux 0
+	Mux16(a=idexout1, b=idexout0, sel=branch, out=IDEXmux0Out);
+	
+	// ID/EX Mux 1
+	Mux4Way16(a=exmemout0, b=idexout1, c=memwbout0, d=wbnaout0, sel[0]=fu0,
+		sel[1]=fu1, out=IDEXmux1Out);
+	
+	// ID/EX Mux 2 Select Logic
+	Or(a=fu2, b=fu3, out=hazard);
+	Mux(a=ALU, b=false, sel=hazard, out=ALUin);
+	
+	// ID/EX Mux 2
+	Mux8Way16(a=idexout2, b=exmemout0, c=memwbout0, d=wbnaout0, e=idexout3,
+		f=idexout3, g=idexout3, h=idexout3, sel[0]=fu2, sel[1]=fu3,
+		sel[2]=ALUin, out=IDEXmux2Out);
+	
+	// Forwarding Unit
+	ForwardingUnit(idex=idexout4, exmem=exmemout2, memwb=memwbout2,
+		wbna=wbnaout1, out[0]=fu0, out[1]=fu1, out[2]=fu2, out[3]=fu3);
+	
+	// Arithmetic Logic Unit
+	ALU(a=IDEXmux1Out, b=IDEXmux2Out, sub=SUB, nor=NOR, out=ALUout, z=ALUz);
+	
+	// EX/MEM Pipeline Buffer
+	EXMEM(in0=ALUout, in1=idexout2, in2=idexout4, in3=idexout5, in4=idexout6,
+		CUin=idexCB, out0[0..13]=exmemaddress, out0=exmemout0,
+		out1=exmemout1, out2=exmemout2, out3=exmemout3, out4=exmemout4,
+		controlBits=exmemCB);
+	
+	// MEM/WB Pipeline Buffer
+	MEMWB(in0=exmemout0, in1=DMout, in2=exmemout2, in3=exmemout3,
+		in4=exmemout4, CUin=exmemCB, out0=memwbout0, out1=memwbout1,
+		out2[8..11]=RFWR, out2=memwbout2, out3[8..15]=LIMM,
+		out3=memwbout3, out4=memwbout4);
+	
+	// LW Mux
+	Mux16(a=memwbout0, b=memwbout1, sel=LW, out=LWmuxOut);
+	
+	// WB/NA Pipeline Buffer
+	WBNA(in0=LWmuxOut, in1=memwbout2, out0=wbnaout0, out1=wbnaout1);
+
+}

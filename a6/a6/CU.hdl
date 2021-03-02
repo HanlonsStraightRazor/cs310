@@ -1,0 +1,19 @@
+/*
+ * Booth's algorithm implementation control unit.
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP CU {
+
+    IN   count[16], Qout, Qneg1;
+    OUT  newCount[16], math, sub;
+
+    PARTS:
+	// Decrement the C register
+	ALU(a=count, b=true, sub=false, nor=false, out=newCount);
+	// Determine if the A register must be arithmetically modified
+	Xor(a=Qout, b=Qneg1, out=math);
+	// Determine if the aritmetic operation must be subtraction
+	Not(in=Qneg1, out=NotQneg1);
+	And(a=Qout, b=NotQneg1, out=sub);
+}

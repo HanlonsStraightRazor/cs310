@@ -1,0 +1,83 @@
+/**
+ * Single-cycle implementation of the Larc ISA
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP Larc {
+
+    PARTS:
+	// 1 = keep going, 0 = halt
+	Not(in=halt, out=Nothalt);
+	// Program Counter
+    PC(in=PCIn, load=Nothalt, inc=false, reset=false,
+	   out[0..11]=PC1, out[12..15]=PC2);
+	// Instruction Memory
+	RAM4K(in[0..11]=PC1, in[12..15]=PC2, load=false, address=PC1, out[0]=IM0,
+	      out[1]=IM1, out[2]=IM2, out[3]=IM3, out[4]=IM4, out[5]=IM5,
+		  out[6]=IM6, out[7]=IM7, out[8]=IM8, out[9]=IM9, out[10]=IM10,
+		  out[11]=IM11, out[12]=IM12, out[13]=IM13, out[14]=IM14,
+		  out[15]=IM15);
+	// Progam Counter Incrementer
+	Inc16(in[0..11]=PC1, in[12..15]=PC2, out=PCInc);
+	// Branch Address Calculator
+	Add16(a=PCInc, b[0]=IM4, b[1]=IM5, b[2]=IM6, b[3]=IM7, b[4]=IM8, b[5]=IM9,
+	      b[6]=IM10, b[7]=IM11, b[8]=IM11, b[9]=IM11, b[10]=IM11, b[11]=IM11,
+		  b[12]=IM11, b[13]=IM11, b[14]=IM11, b[15]=IM11,
+		  out=BranchInstruction);
+	// Control Unit
+	CU(opcode[0]=IM12, opcode[1]=IM13, opcode[2]=IM14, opcode[3]=IM15,
+	   out[0]=se, out[1]=rr1, out[2]=rfwd0, out[3]=rfwd1, out[4]=rfwrite,
+	   out[5]=jal, out[6]=bn, out[7]=be, out[8]=alu, out[9]=sub, out[10]=nor,
+	   out[11]=sw, out[12]=lw, out[13]=halt);
+	// Short Immediate Mux
+	Mux4(a[0]=IM8, a[1]=IM9, a[2]=IM10, a[3]=IM11, b[0]=IM0, b[1]=IM1,
+	     b[2]=IM2, b[3]=IM3, sel=se, out[0]=SE0, out[1]=SE1, out[2]=SE2,
+		 out[3]=SE3);
+	// Read Register 1 Mux
+	Mux4(a[0]=IM4, a[1]=IM5, a[2]=IM6, a[3]=IM7,
+	     b[0..3]=false, sel=rr1, out=RR1);
+	// Write Data Mux
+	Mux4Way16(a[0..7]=false, a[8]=IM0, a[9]=IM1, a[10]=IM2, a[11]=IM3,
+	          a[12]=IM4, a[13]=IM5, a[14]=IM6, a[15]=IM7, b[0]=IM0, b[1]=IM1,
+			  b[2]=IM2, b[3]=IM3, b[4]=IM4, b[5]=IM5, b[6]=IM6, b[7]=IM7,
+			  b[8]=IM7, b[9]=IM7, b[10]=IM7, b[11]=IM7, b[12]=IM7, b[13]=IM7,
+			  b[14]=IM7, b[15]=IM7, c=PCInc, d=LW, sel[0]=rfwd0, sel[1]=rfwd1,
+			  out=WD);
+	// Ensures R0 is always zero: if WR == 0 and RFWRITE == 1 then WD = 0
+	Not(in=IM8, out=NotIM8);
+	Not(in=IM9, out=NotIM9);
+	Not(in=IM10, out=NotIM10);
+	Not(in=IM11, out=NotIM11);
+	And(a=NotIM8, b=NotIM9, out=NotIM89);
+	And(a=NotIM10, b=NotIM11, out=NotIM1011);
+	And(a=NotIM89, b=NotIM1011, out=R0);
+	And(a=rfwrite, b=R0, out=WRITER0);
+	Mux16(a=WD, b=false, sel=WRITER0, out=WD2);
+	// Register File
+	RegisterFile(rr1=RR1, rr2[0]=IM0, rr2[1]=IM1, rr2[2]=IM2, rr2[3]=IM3,
+	             wr[0]=IM8, wr[1]=IM9, wr[2]=IM10, wr[3]=IM11, wd=WD2,
+				 load=rfwrite, rd1=RD1, rd2=RD2);
+	// ALU Input 2
+	Mux16(a=RD2, b[0]=SE0, b[1]=SE1, b[2]=SE2, b[3]=SE3, b[4]=SE3, b[5]=SE3,
+	      b[6]=SE3, b[7]=SE3, b[8]=SE3, b[9]=SE3, b[10]=SE3, b[11]=SE3,
+		  b[12]=SE3, b[13]=SE3, b[14]=SE3, b[15]=SE3, sel=alu, out=ALU2);
+	// Arithmetic Logic Unit
+	ALU(a=RD1, b=ALU2, sub=sub, nor=nor, out[0..13]=ALUOut1,
+	    out[14..15]=ALUOut2, z=zout);
+	// Jump And Link Mux
+	Mux16(a=PCInc, b=RD1, sel=jal, out=JumpInstruction);
+	// ALUOut != 0
+	Not(in=zout, out=Notz);
+	// Branch Not Equal And
+	And(a=bn, b=Notz, out=BN);
+	// Branch Equal And
+	And(a=be, b=zout, out=BE);
+	// Determine if branching
+	Or(a=BN, b=BE, out=branch);
+	// Branching Mux
+	Mux16(a=JumpInstruction, b=BranchInstruction, sel=branch, out=PCIn);
+	// Data Memory
+	RAM16K(in=RD2, load=sw, address=ALUOut1, out=RD);
+	// Load Word Mux
+	Mux16(a[0..13]=ALUOut1, a[14..15]=ALUOut2, b=RD, sel=lw, out=LW);
+}

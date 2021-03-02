@@ -1,0 +1,39 @@
+/**
+ * NextStateLogic
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP NextStateLogic {
+
+    IN in[4], state[5];
+    OUT out[5];
+
+    PARTS:
+    //opcode mux
+    Mux16Way16(a[0]=false, a[1]=true, a[2..15]=false, b[0..1]=false,
+               b[2]=true, b[3..15]=false, c[0..15]=false, d[0..15]=false,
+               e[0..15]=false, f[0..15]=false, g[0]=true, g[1]=false, g[2]=true,
+               g[3..15]=false, h[0]=false, h[1..2]=true, h[3..15]=false,
+               i[0..2]=true, i[3..15]=false, j[0..2]=false, j[3]=true,
+               j[4..15]=false, k[0]=true, k[1..2]=false, k[3]=true,
+               k[4..15]=false, l[0]=false, l[1]=true, l[2]=false, l[3]=true,
+               l[4..15]=false, m[0..1]=true, m[2]=false, m[3]=true,
+               m[4..15]=false, n[0]=false, n[1..3]=true, n[4..15]=false,
+               o[0..3]=false, o[4]=true, o[5..15]=false, p[0]=true,
+               p[1..3]=false, p[4]=true, sel=in, out=state1Out);
+               
+    //next state mux
+    Mux16Way16(a[0]=true, a[1..15]=false, b=state1Out, c[0..1]=true,
+               c[2..15]=false, d[0..15]=false, e[0..1]=true,
+               e[2..15]=false, f[0..1]=true, f[2..15]=false, g[0..1]=true,
+               g[2..15]=false, h[0..15]=false, i[0..15]=false, j[0..15]=false,
+               k[0..15]=false, l[0..1]=false, l[2..3]=true, l[4..15]=false,
+               m[0]=true, m[1]=false, m[2..3]=true, n[0..15]=false,
+               o[0..3]=true, o[4..15]=false, p[0..15]=false, sel=state[0..3],
+               out=lowerStateOut);
+               
+    Mux16(a[0..15]=false, b[0]=true, b[1..3]=false, b[4]=true, b[5..15]=false,
+          sel=state[0], out=upperStateOut);
+
+    Mux16(a=lowerStateOut, b=upperStateOut, sel=state[4], out[0..4]=out);
+}

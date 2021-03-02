@@ -1,0 +1,92 @@
+/**
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+//Burn 0 into R0
+CHIP Larc {
+
+    PARTS:
+	// Program Counter
+    PC(in=branchMux, load=pcwrite, inc=false, reset=false,
+	   out=PCout);
+    Mux16(a=PCout, b=ALUOut, sel=msrc, out[0..11]=pcMuxOutAddress);
+	//Memory
+	RAM4K(in=outRD2, load=mwrite, address=pcMuxOutAddress, out=mout);
+    //IR
+    IR(in=mout, load=irwrite, out[0]=ir0Out, out[1]=ir1Out, out[2]=ir2Out,
+       out[3]=ir3Out, out[4]=ir4Out, out[5]=ir5Out, out[6]=ir6Out,
+       out[7]=ir7Out, out[8]=ir8Out, out[9]=ir9Out, out[10]=ir10Out,
+       out[11]=ir11Out, out[12]=ir12Out, out[13]=ir13Out, out[14]=ir14Out,
+       out[15]=ir15Out);
+    //MDR
+    MDR(in=mout, load=mdrwrite, out=outMDR);
+    // Register File
+	RegisterFile(rr1[0]=ir4Out, rr1[1]=ir5Out, rr1[2]=ir6Out, rr1[3]=ir7Out,
+                 rr2[0]=ir0Out, rr2[1]=ir1Out, rr2[2]=ir2Out, rr2[3]=ir3Out,
+                 wr[0]=ir8Out, wr[1]=ir9Out, wr[2]=ir10Out, wr[3]=ir11Out,
+                 wd=writeDataMux, load=rfwrite, rd1=RdChip1, rd2=RdChip2);
+    //RD1
+    RD1(in=RdChip1, load=rd1write, out=outRD1);
+    //RD2
+    RD2(in=RdChip2, load=rd2write, out=outRD2);
+    //liMux
+    Mux16(a[0..7]=false, a[8]=ir0Out,  a[9]=ir1Out, a[10]=ir2Out, a[11]=ir3Out,
+          a[12]=ir4Out, a[13]=ir5Out, a[14]=ir6Out, a[15]=ir7Out, b[0]=ir0Out,
+          b[1]=ir1Out, b[2]=ir2Out, b[3]=ir3Out, b[4]=ir4Out, b[5]=ir5Out,
+          b[6]=ir6Out, b[7]=ir7Out, b[8]=ir7Out, b[9]=ir7Out, b[10]=ir7Out,
+          b[11]=ir7Out, b[12]=ir7Out, b[13]=ir7Out, b[14]=ir7Out, b[15]=ir7Out,
+          sel=li, out=liMuxOut);
+    // Write Data Mux
+	Mux4Way16(a=liMuxOut, b=PCout, c=outMDR, d=ALUOut, sel[1]=rfwd,
+              sel[0]=rfwdpart2, out=wdMux);
+    //0 in register 0
+    Or(a=ir8Out, b=ir9Out, out=OrOne);
+    Or(a=ir10Out, b=ir11Out, out=OrTwo);
+    Or(a=OrOne, b=OrTwo, out=orThree);
+    Not(in=orThree, out=nOrThree);
+    Mux16(a=wdMux, b=false, sel=nOrThree, out=writeDataMux);
+    //lw Mux
+    Mux4(a[0]=ir8Out, a[1]=ir9Out, a[2]=ir10Out, a[3]=ir11Out, b[0]=ir0Out,
+         b[1]=ir1Out, b[2]=ir2Out, b[3]=ir3Out, sel=lw, out[0]=lwMux0,
+         out[1]=lwMux1, out[2]=lwMux2, out[3]=lwMux3);
+    //sorl Mux
+    Mux16(a[0]=lwMux0, a[1]=lwMux1, a[2]=lwMux2, a[3]=lwMux3, a[4]=lwMux3,
+          a[5]=lwMux3, a[6]=lwMux3, a[7]=lwMux3, a[8]=lwMux3, a[9]=lwMux3,
+          a[10]=lwMux3, a[11]=lwMux3, a[12]=lwMux3, a[13]=lwMux3, a[14]=lwMux3,
+          a[15]=lwMux3, b[0]=ir4Out, b[1]=ir5Out, b[2]=ir6Out, b[3]=ir7Out,
+          b[4]=ir8Out, b[5]=ir9Out, b[6]=ir10Out, b[7]=ir11Out, b[8]=ir11Out,
+          b[9]=ir11Out, b[10]=ir11Out, b[11]=ir11Out, b[12]=ir11Out,
+          b[13]=ir11Out, b[14]=ir11Out, b[15]=ir11Out, sel=sorl, out=sorlOut);
+    // Control Unit
+	CU(opcode[0]=ir12Out, opcode[1]=ir13Out, opcode[2]=ir14Out,
+       opcode[3]=ir15Out, out[0]=halt, out[1]=pcwrite, out[2]=msrc,
+       out[3]=mwrite, out[4]=irwrite, out[5]=mdrwrite, out[6]=lw, out[7]=li,
+       out[8]=rfwd, out[9]=rfwdpart2, out[10]=rfwrite, out[11]=sorl,
+       out[12]=rd1write, out[13]=rd2write, out[14]=alu1, out[15]=alu1part2,
+       out2[0]=alu2, out2[1]=alu2part2, out2[2]=sub, out2[3]=nor, out2[4]=bn,
+       out2[5]=be, out2[6]=aluoutwrite, out2[7]=jal);
+    //ALU1
+    Mux4Way16(a=PCout, b=false, c=outRD1, sel[0]=alu1part2, sel[1]=alu1,
+              out=alu1Mux);
+    //ALU2
+    Mux4Way16(a=outRD2, b[0]=true, b[1..15]=false, c=sorlOut, d=ALUOut,
+              sel[1]=alu2, sel[0]=alu2part2, out=alu2Mux);
+    // Arithmetic Logic Unit
+	ALU(a=alu1Mux, b=alu2Mux, sub=sub, nor=nor, out=ALU2Out, z=zout);
+    //ALUout
+    ALUoutput(in=ALU2Out, load=aluoutwrite, out=ALUOut);
+    // ALUOut != 0
+	Not(in=zout, out=Notz);
+	// Branch Not Equal And
+	And(a=bn, b=Notz, out=BN);
+	// Branch Equal And
+	And(a=be, b=zout, out=BE1);
+	// Determine if branching
+	Or(a=BN, b=BE1, out=branch);
+    //bn or be
+    Or(a=bn, b=be, out=bnOrbe);
+    //branch or jal
+    Or(a=branch, b=jal, out=branchOrjal);
+    //branching Mux
+    Mux4Way16(a=ALU2Out, b=outRD1, c=PCout, d=ALUOut, sel[1]=bnOrbe,
+              sel[0]=branchOrjal, out=branchMux); 
+}

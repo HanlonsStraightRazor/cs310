@@ -1,0 +1,24 @@
+/**
+ * Instruction decode/execute
+ * buffer for pipelined Larc.
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP IDEX {
+
+	IN in0[16], in1[16], in2[16], in3[16],
+		in4[16], in5[16], in6[16], CUin[16];
+	OUT out0[16], out1[16], out2[16], out3[16],
+		out4[16], out5[16], out6[16], controlBits[16];
+
+    PARTS:
+	SIMM(in=in3, load=NotHALT, out=out3);
+	RD1(in=in1, load=NotHALT, out=out1);
+	RD2(in=in2, load=NotHALT, out=out2);
+	Regs(in=in4, load=NotHALT, out=out4);
+	LIMM(in=in0, load=NotHALT, out=out0);
+	LIMM(in=in5, load=NotHALT, out=out5);
+	PCplus1(in=in6, load=NotHALT, out=out6);
+	Controls(in=CUin, load=true, out[13]=HALT, out=controlBits);
+	Not(in=HALT, out=NotHALT);
+}

@@ -1,0 +1,48 @@
+/**
+ * Dual-ported register file of 16 registers, each 16-bit wide.  
+ * The register file (RF) can be seen as a 1D array of length 16, with
+ * indices 0 through 15, in which each memory location contains a 16-bit value.
+ *
+ * The chip supports three simultaneous I/O operations, namely 
+ * two read operations and one write operation, as follows:
+ *     Read:  rd1(t) = RF[rr1(t)](t)
+ *            rd2(t) = RF[rr2(t)](t)
+ *     Write: If load(t-1) == 1 
+ *            Then RF[wr(t-1)](t) = wd(t-1)
+ */
+
+CHIP RegisterFile {
+
+    IN  rr1[4],      // number of the first register to be read out
+        rr2[4],      // number of the second register to be read out
+        wr[4],       // number of the register to be written into
+        wd[16],      // value to be written
+        load;        // 1 if the value wd must be written to register number wr
+
+    OUT rd1[16],     // current value in register number rr1
+        rd2[16];     // current value in register number rr2
+
+    PARTS:
+	DMux16Way(in = load, sel = wr, a = dMux1, b=dMux2, c=dMux3, d=dMux4, e=dMux5, f=dMux6, g=dMux7, h=dMux8, i = dMux9, j = dMux10,
+              k = dMux11, l = dMux12, m = dMux13, n = dMux14, o = dMux15, p = dMux16);
+	Register(in = wd, load = dMux1, out = reg1);
+	Register(in = wd, load = dMux2, out = reg2);
+	Register(in = wd, load = dMux3, out = reg3);
+	Register(in = wd, load = dMux4, out = reg4);
+	Register(in = wd, load = dMux5, out = reg5);
+	Register(in = wd, load = dMux6, out = reg6);
+	Register(in = wd, load = dMux7, out = reg7);
+	Register(in = wd, load = dMux8, out = reg8);
+	Register(in = wd, load = dMux9, out = reg9);
+	Register(in = wd, load = dMux10, out = reg10);
+	Register(in = wd, load = dMux11, out = reg11);
+	Register(in = wd, load = dMux12, out = reg12);
+	Register(in = wd, load = dMux13, out = reg13);
+	Register(in = wd, load = dMux14, out = reg14);
+	Register(in = wd, load = dMux15, out = reg15);
+	Register(in = wd, load = dMux16, out = reg16);
+    Mux16Way16(a = reg1, b = reg2, c = reg3, d=reg4, e=reg5, f=reg6, g=reg7, h=reg8, i = reg9, j = reg10,
+               k = reg11, l = reg12, m = reg13, n = reg14, o = reg15, p = reg16, sel = rr1, out = rd1);
+	Mux16Way16(a = reg1, b = reg2, c = reg3, d=reg4, e=reg5, f=reg6, g=reg7, h=reg8, i = reg9, j = reg10,
+               k = reg11, l = reg12, m = reg13, n = reg14, o = reg15, p = reg16, sel = rr2, out = rd2);
+}

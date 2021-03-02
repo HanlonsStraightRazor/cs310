@@ -1,0 +1,15 @@
+/**
+ * Instruction fetch/instruction decode
+ * buffer for pipelined Larc.
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP IFID {
+
+	IN in0[16], in1[16];
+	OUT out0[16], out1[16];
+
+    PARTS:
+	IR(in=in1, load=true, out=out1);
+	PCplus1(in=in0, load=true, out=out0);
+}

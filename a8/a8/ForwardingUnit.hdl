@@ -1,0 +1,64 @@
+/**
+ * Hardwired forwarding unit for the pipelined
+ * implementation of the Larc ISA.
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP ForwardingUnit {
+
+	IN idex[16], exmem[16], memwb[16], wbna[16];
+	OUT out[4];
+	
+    PARTS:
+	// General Hazard Logic
+	Not16(in=idex, out[4..7]=idexRB, out[0..3]=idexRC);
+	
+	// E Hazard Logic
+	Not16(in=exmem, out[15]=exmemALUop,
+		out[8..11]=exmemRA, out[4..7]=exmemRB);
+	EQUAL(a=exmemRA, b=true, out=exmemRA0);
+	Not(in=exmemRA0, out=NotExmemRA0);
+	EQUAL(a=exmemRA, b=idexRB, out=ERADRB);
+	EQUAL(a=exmemRA, b=idexRC, out=ERADRC);
+	And(a=exmemALUop, b=NotExmemRA0, out=EALUand0);
+	And(a=EALUand0, b=ERADRB, out=EhazardB);
+	And(a=EALUand0, b=ERADRC, out=EhazardC);
+	Or(a=EhazardB, b=EhazardC, out=Ehazard);
+	Not(in=EhazardB, out=EhazardBbit);
+	
+	// M Hazard Logic
+	Not16(in=memwb, out[15]=memwbALUop,
+		out[8..11]=memwbRA, out[4..7]=memwbRB);
+	EQUAL(a=memwbRA, b=true, out=memwbRA0);
+	Not(in=memwbRA0, out=NotMemwbRA0);
+	EQUAL(a=memwbRA, b=idexRB, out=MRADRB);
+	EQUAL(a=memwbRA, b=idexRC, out=MRADRC);
+	And(a=memwbALUop, b=NotMemwbRA0, out=MALUand0);
+	And(a=MALUand0, b=MRADRB, out=MhazardB);
+	And(a=MALUand0, b=MRADRC, out=MhazardC);
+	Or(a=MhazardB, b=MhazardC, out=Mhazard);
+	Not(in=MhazardB, out=MhazardBbit);
+	
+	// W Hazard Logic
+	Not16(in=wbna, out[15]=wbnaALUop,
+		out[8..11]=wbnaRA, out[4..7]=wbnaRB);
+	EQUAL(a=wbnaRA, b=true, out=wbnaRA0);
+	Not(in=wbnaRA0, out=NotWbnaRA0);
+	EQUAL(a=wbnaRA, b=idexRB, out=WRADRB);
+	EQUAL(a=wbnaRA, b=idexRC, out=WRADRC);
+	And(a=wbnaALUop, b=NotWbnaRA0, out=WALUand0);
+	And(a=WALUand0, b=WRADRB, out=WhazardB);
+	And(a=WALUand0, b=WRADRC, out=WhazardC);
+	Or(a=WhazardB, b=WhazardC, out=Whazard);
+	Not(in=WhazardB, out=WhazardBbit);
+	
+	// Outputs
+	Mux4(a[0]=true, a[1]=false, a[2]=false, a[3]=false, b[0]=true,
+		b[1]=WhazardB, b[2]=WhazardC, b[3]=WhazardC, sel=Whazard,
+		out=WhazardMux);
+	Mux4(a=WhazardMux, b[0]=MhazardBbit, b[1]=MhazardB, b[2]=false,
+		b[3]=MhazardC, sel=Mhazard, out=MhazardMux);
+	Mux4(a=MhazardMux, b[0]=EhazardBbit, b[1]=false, b[2]=EhazardC,
+		b[3]=false, sel=Ehazard, out=out);
+	
+}

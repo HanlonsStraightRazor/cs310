@@ -1,0 +1,20 @@
+/**
+ * Execute/memory
+ * buffer for pipelined Larc.
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP EXMEM {
+
+	IN in0[16], in1[16], in2[16], in3[16], in4[16], CUin[16];
+	OUT out0[16], out1[16], out2[16], out3[16], out4[16], controlBits[16];
+
+    PARTS:
+	RD2(in=in1, load=NotHALT, out=out1);
+	Regs(in=in2, load=NotHALT, out=out2);
+	ALUoutput(in=in0, load=NotHALT, out=out0);
+	LIMM(in=in3, load=NotHALT, out=out3);
+	PCplus1(in=in4, load=NotHALT, out=out4);
+	Controls(in=CUin, load=true, out[13]=HALT, out=controlBits);
+	Not(in=HALT, out=NotHALT);
+}

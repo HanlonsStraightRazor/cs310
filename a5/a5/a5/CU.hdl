@@ -1,0 +1,22 @@
+/**
+ * Hardwired control unit for the multi-cycle implementation 
+ * of the Larc ISA
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP CU {
+
+    IN opcode[4];
+    OUT out[16], out2[8];
+
+    PARTS:
+    NextStateLogic(in=opcode, state[0]=stateOut0, state[1]=stateOut1,
+                   state[2]=stateOut2, state[3]=stateOut3, state[4]=stateOut4,
+                   out[0]=outNext0, out[1]=outNext1, out[2]=outNext2,
+                   out[3]=outNext3, out[4]=outNext4);
+    STATE(in[0]=outNext0, in[1]=outNext1, in[2]=outNext2, in[3]=outNext3,
+          in[4]=outNext4, load=true, out[0]=stateOut0, out[1]=stateOut1,
+          out[2]=stateOut2, out[3]=stateOut3, out[4]=stateOut4);
+    ControlSignalLogic(in[0]=stateOut0, in[1]=stateOut1, in[2]=stateOut2,
+                       in[3]=stateOut3, in[4]=stateOut4, out=out, out2=out2);
+}

@@ -1,0 +1,74 @@
+/**
+ * ControlSignalLogic
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP ControlSignalLogic {
+
+    IN in[5];
+    OUT out[16], out2[8];
+
+    PARTS:
+    //states 0 to 15, bits 0 to 15
+    Mux16Way16(a[0]=false, a[1]=true, a[2..3]=false, a[4]=true, a[5..15]=false,
+               b[0..10]=false, b[11..13]=true, b[14..15]=false,
+               c[0..13]=false, c[14]=true, c[15]=false,
+               d[0..7]=false, d[8..10]=true, d[11..15]=false,
+               e[0..13]=false, e[14]=true, e[15]=false,
+               f[0..13]=false, f[14]=true, f[15]=false,
+               g[0..13]=false, g[14]=true, g[15]=false,
+               h[0..6]=false, h[7]=true, h[8..9]=false, h[10]=true,
+               h[11..14]=false, h[15]=true,
+               i[0..9]=false, i[10]=true, i[11..15]=false,
+               j[0]=false, j[1]=true, j[2..14]=false, j[15]=true,
+               k[0]=false, k[1]=true, k[2..14]=false, k[15]=true,
+               l[0..5]=false, l[6]=true, l[7..13]=false, l[14]=true,
+               l[15]=false,
+               m[0..1]=false, m[2]=true, m[3..4]=false, m[5]=true,
+               m[6..15]=false,
+               n[0..7]=false, n[8]=true, n[9]=false, n[10]=true,
+               n[11..15]=false,
+               o[0..13]=false, o[14]=true, o[15]= false,
+               p[0..1]=false, p[2..3]=true, p[4..15]=false,
+               sel=in[0..3], out=mux16Out);
+    //states 0 to 15, bits 16 to 23
+    Mux16Way16(a[0]=false, a[1]=true, a[2..15]=false,
+               b[0]=true, b[1..5]=false, b[6]=true, b[7..15]=false,
+               c[0..5]=false, c[6]=true, c[7..15]=false,
+               d[0..15]=false,
+               e[0..1]=false, e[2]=true, e[3..5]=false, e[6]=true,
+               e[7..15]=false,
+               f[0..2]=false, f[3]=true, f[4..5]=false, f[6]=true,
+               f[7..15]=false,
+               g[0..1]=false, g[2..3]=true, g[4..5]=false, g[6]=true,
+               g[7..15]=false,
+               h[0..15]=false,
+               i[0..15]=false,
+               j[0..4]=false, j[5..6]=true, j[7..15]=false,
+               k[0..3]=false, k[4]=true, k[5]=false, k[6]=true, k[7..15]=false,
+               l[0]=true, l[1..5]=false, l[6]=true, l[7..15]=false,
+               m[0..15]=false,
+               n[0..15]=false,
+               o[0]=true, o[1..5]=false, o[6]=true, o[7..15]= false,
+               p[0..15]=false,
+               sel=in[0..3], out=mux16Out2);
+    //state 16 and 17, bits 0 to 15
+    Mux16(a[0]=false, a[1]=true, a[2..8]=false, a[9..10]=true,
+          a[11..15]=false, b[0]=true, b[1..15]=false,
+          sel=in[0], out=muxOut);
+    //state 16 and 17, bits 16 to 23
+    Mux16(a[0..6]=false, a[7]=true, a[8..15]=false,
+          b[0..15]=false, sel=in[0], out=muxOut2);
+    //figure out which mux has the final output bits 0 to 15
+    Mux16(a=mux16Out, b=muxOut, sel=in[4], out[0]=out[0],
+          out[1]=out[1], out[2]=out[2], out[3]=out[3], out[4]=out[4],
+          out[5]=out[5], out[6]=out[6], out[7]=out[7], out[8]=out[8],
+          out[9]=out[9], out[10]=out[10], out[11]=out[11], out[12]=out[12],
+          out[13]=out[13], out[14]=out[14], out[15]=out[15]);
+    //figure out which mux has the final output bits 16 to 23
+    Mux16(a=mux16Out2, b=muxOut2, sel=in[4], out[0]=out2[0],
+          out[1]=out2[1], out[2]=out2[2], out[3]=out2[3],
+          out[4]=out2[4], out[5]=out2[5], out[6]=out2[6],
+          out[7]=out2[7]);
+          
+}

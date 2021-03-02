@@ -1,0 +1,28 @@
+/**
+ * RAM512: Memory of 512 registers, each 16 bits wide.  
+ * The chip supports read and write operations, as follows:
+ *     Read:  out(t) = RAM512[address(t)](t)
+ *     Write: If load(t-1)==1 then RAM512[address(t-1)](t) = in(t-1)
+ * In words: the chip always outputs the value stored at the memory 
+ * location specified by 'address'. If load==1, the in value is loaded 
+ * into the memory location specified by address.  This value becomes 
+ * available through the out pin starting from the next time step.
+ */
+
+CHIP RAM512 {
+
+    IN  in[16], load, address[9];
+    OUT out[16];
+
+    PARTS:
+    RAM64(in = in, load = out1, address = address[0..5], out = ram1);
+	RAM64(in = in, load = out2, address = address[0..5], out = ram2);
+	RAM64(in = in, load = out3, address = address[0..5], out = ram3);
+	RAM64(in = in, load = out4, address = address[0..5], out = ram4);
+	RAM64(in = in, load = out5, address = address[0..5], out = ram5);
+	RAM64(in = in, load = out6, address = address[0..5], out = ram6);
+	RAM64(in = in, load = out7, address = address[0..5], out = ram7);
+	RAM64(in = in, load = out8, address = address[0..5], out = ram8);
+	DMux8Way(in = load, sel = address[6..8], a = out1, b = out2, c = out3, d = out4, e = out5, f = out6, g = out7, h = out8);
+	Mux8Way16(a = ram1, b = ram2, c = ram3, d = ram4, e = ram5, f = ram6, g = ram7, h = ram8, sel = address[6..8], out = out);
+}

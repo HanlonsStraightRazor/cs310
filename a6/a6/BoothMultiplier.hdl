@@ -1,0 +1,75 @@
+/*
+ * Booth's algorithm implementation for efficient multiplication.
+ * Authors: Martin Mueller & Isaiah Ley
+ */
+
+CHIP BoothMultiplier {
+
+    IN   initQ[16], initM[16], reset;
+    OUT  outA[16], outQ[16], done;
+
+    PARTS:
+	// Enters an infinite loop upon finishing
+	Or16Way(a=Cout0, b=Cout1, c=Cout2, d=Cout3, e=Cout4, f=Cout5, g=Cout6,
+			h=Cout7, i=Cout8, j=Cout9, k=Cout10, l=Cout11, m=Cout12, n=Cout13,
+			o=Cout14, p=Cout15, out=NotDone);
+	Not(in=NotDone, out=done);
+	Or(a=reset, b=NotDone, out=resetOrNotDone);
+	// Control Unit
+	CU(count[0]=Cout0, count[1]=Cout1, count[2]=Cout2, count[3]=Cout3,
+	   count[4]=Cout4, count[5]=Cout5, count[6]=Cout6, count[7]=Cout7,
+	   count[8]=Cout8, count[9]=Cout9, count[10]=Cout10, count[11]=Cout11,
+	   count[12]=Cout12, count[13]=Cout13, count[14]=Cout14, count[15]=Cout15,
+	   Qout=Qout0, Qneg1=Qneg1, newCount=decC, math=math, sub=sub);
+	// M Register
+	MRegister(in=initM, load=reset, out=Mout);
+	// Arithmetic Logic Unit
+	ALU(a[0]=Aout0, a[1]=Aout1, a[2]=Aout2, a[3]=Aout3, a[4]=Aout4, a[5]=Aout5,
+	    a[6]=Aout6, a[7]=Aout7, a[8]=Aout8, a[9]=Aout9, a[10]=Aout10,
+		a[11]=Aout11, a[12]=Aout12, a[13]=Aout13, a[14]=Aout14, a[15]=Aout15,
+		b=Mout, sub=sub, nor=false, out[0]=ALUout0, out[1]=ALUout1,
+		out[2]=ALUout2, out[3]=ALUout3, out[4]=ALUout4, out[5]=ALUout5,
+		out[6]=ALUout6, out[7]=ALUout7, out[8]=ALUout8, out[9]=ALUout9,
+		out[10]=ALUout10, out[11]=ALUout11, out[12]=ALUout12, out[13]=ALUout13,
+		out[14]=ALUout14, out[15]=ALUout15);
+	// C Register and reset mux
+	Mux16(a=decC, b[0..3]=false, b[4]=true, b[5..15]=false, sel=reset,
+	      out=Cin);
+	CRegister(in=Cin, load=resetOrNotDone, out[0]=Cout0, out[1]=Cout1,
+	          out[2]=Cout2, out[3]=Cout3, out[4]=Cout4, out[5]=Cout5,
+			  out[6]=Cout6, out[7]=Cout7, out[8]=Cout8, out[9]=Cout9,
+			  out[10]=Cout10, out[11]=Cout11, out[12]=Cout12, out[13]=Cout13,
+			  out[14]=Cout14, out[15]=Cout15);
+	// Q_{-1} and reset mux
+	Mux(a=Qout0, b=false, sel=reset, out=Bitin);
+	Bit(in=Bitin, load=resetOrNotDone, out=Qneg1);
+	// Q Register, math or shift mux, and reset mux
+	Mux16(a[0]=Qout1, a[1]=Qout2, a[2]=Qout3, a[3]=Qout4, a[4]=Qout5,
+		  a[5]=Qout6, a[6]=Qout7, a[7]=Qout8, a[8]=Qout9, a[9]=Qout10,
+		  a[10]=Qout11, a[11]=Qout12, a[12]=Qout13, a[13]=Qout14, a[14]=Qout15,
+		  a[15]=Aout0, b[0]=Qout1, b[1]=Qout2, b[2]=Qout3, b[3]=Qout4,
+		  b[4]=Qout5, b[5]=Qout6, b[6]=Qout7, b[7]=Qout8, b[8]=Qout9,
+		  b[9]=Qout10, b[10]=Qout11, b[11]=Qout12, b[12]=Qout13, b[13]=Qout14,
+		  b[14]=Qout15, b[15]=ALUout0, sel=math, out=mathOrShiftq);
+	Mux16(a=mathOrShiftq, b=initQ, sel=reset, out=Qin);
+	QRegister(in=Qin, load=resetOrNotDone, out=outQ, out[0]=Qout0,
+			  out[1]=Qout1, out[2]=Qout2, out[3]=Qout3, out[4]=Qout4,
+			  out[5]=Qout5, out[6]=Qout6, out[7]=Qout7, out[8]=Qout8,
+			  out[9]=Qout9, out[10]=Qout10, out[11]=Qout11, out[12]=Qout12,
+			  out[13]=Qout13, out[14]=Qout14, out[15]=Qout15);
+	// A Register, math or shift mux, and reset mux
+	Mux16(a[0]=Aout1, a[1]=Aout2, a[2]=Aout3, a[3]=Aout4, a[4]=Aout5,
+		  a[5]=Aout6, a[6]=Aout7, a[7]=Aout8, a[8]=Aout9, a[9]=Aout10,
+		  a[10]=Aout11, a[11]=Aout12, a[12]=Aout13, a[13]=Aout14, a[14]=Aout15,
+		  a[15]=Aout15, b[0]=ALUout1, b[1]=ALUout2, b[2]=ALUout3, b[3]=ALUout4,
+		  b[4]=ALUout5, b[5]=ALUout6, b[6]=ALUout7, b[7]=ALUout8, b[8]=ALUout9,
+		  b[9]=ALUout10, b[10]=ALUout11, b[11]=ALUout12, b[12]=ALUout13,
+		  b[13]=ALUout14, b[14]=ALUout15, b[15]=ALUout15, sel=math,
+		  out=mathOrShifta);
+	Mux16(a=mathOrShifta, b=false, sel=reset, out=Ain);
+	ARegister(in=Ain, load=resetOrNotDone, out=outA, out[0]=Aout0,
+			  out[1]=Aout1, out[2]=Aout2, out[3]=Aout3, out[4]=Aout4,
+			  out[5]=Aout5, out[6]=Aout6, out[7]=Aout7, out[8]=Aout8,
+			  out[9]=Aout9, out[10]=Aout10, out[11]=Aout11, out[12]=Aout12,
+			  out[13]=Aout13, out[14]=Aout14, out[15]=Aout15);
+}
